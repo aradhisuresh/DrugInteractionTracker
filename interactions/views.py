@@ -7,6 +7,26 @@ from django.db import connection
 from django.http import JsonResponse
 
 
+def detect_interaction(drug_a, drug_b):
+        # Fetch all rules from the database
+        rules = Rule.objects.all()
+    
+        # Initialize an empty list to store interactions
+        interactions = []
+
+        # Iterate over each rule
+        for rule in rules:
+            # Evaluate the rule's formula using the attributes of the drugs
+            try:
+                if eval(rule.formula, {'drug_a': drug_a, 'drug_b': drug_b}):
+                    interactions.append(rule.description)
+            except Exception as e:
+                print(f"Error evaluating rule: {e}")
+
+        # Return the list of interactions
+        return interactions
+    
+
 @api_view(['GET'])
 def get_drug_interactions(request):
     drug_a_name = request.query_params.get('drug_a').strip()
@@ -26,24 +46,6 @@ def get_drug_interactions(request):
 
         return Response({"error": "One or both drugs not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    def detect_interaction(drug_a, drug_b):
-        # Fetch all rules from the database
-        rules = Rule.objects.all()
-
-        # Initialize an empty list to store interactions
-        interactions = []
-
-        # Iterate over each rule
-        for rule in rules:
-            # Evaluate the rule's formula using the attributes of the drugs
-            try:
-                if eval(rule.formula, {'drug_a': drug_a, 'drug_b': drug_b}):
-                    interactions.append(rule.description)
-            except Exception as e:
-                print(f"Error evaluating rule: {e}")
-
-        # Return the list of interactions
-        return interactions
     
     
         #  Call the function to check drug interactions
