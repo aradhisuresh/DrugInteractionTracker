@@ -1,86 +1,83 @@
-import jwt
-import datetime
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.hashers import check_password
-from .models import User
-from django.contrib.auth import authenticate, get_user_model
-from .services import register_user, generate_access_token, generate_refresh_token
-from .models import BlacklistedToken
-from django.conf import settings
-from django.contrib.auth import authenticate
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.views import Response
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.authentication import get_authorization_header
+from authentication.serializers import UserSerializer
+from authentication.models import User
+from authentication.authentication import create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
 
 
-User = get_user_model()
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
-@csrf_exempt
-def signup(request):
-    if request.method == 'POST':
-        data = request.POST
-        try:
-            username = data['username']
-            email = data['email']
-            password = data['password']
-            user = register_user(username, email, password)
-            return JsonResponse({'message': 'User registered successfully', 'user_id': user.id}, status=201)
-        except KeyError:
-            return JsonResponse({'error': 'Invalid request data'}, status=400)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-@csrf_exempt
-def login(request):
-    if request.method == 'POST':
-        data = request.POST
-        try:
-            username = data['username']
-            password = data['password']
-            user = User.objects.get(username=username)
-            if user.check_password(password):
-                access_token = generate_access_token(user)
-                refresh_token = generate_refresh_token(user)
-                return JsonResponse({'access_token': access_token, 'refresh_token': refresh_token}, status=200)
-            else:
-                return JsonResponse({'error': 'Invalid username or password'}, status=401)
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'Invalid username or password'}, status=401)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-@csrf_exempt
-def logout(request):
-    if request.method == 'POST':
-        authorization_header = request.headers.get('Authorization')
-        if authorization_header and authorization_header.startswith('Bearer '):
-            token = authorization_header.split(' ')[1]
-            try:
-                jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-                BlacklistedToken.objects.create(token=token)
-                return JsonResponse({'message': 'Logged out successfully'}, status=200)
-            except jwt.ExpiredSignatureError:
-                return JsonResponse({'error': 'Token has expired'}, status=401)
-            except jwt.InvalidTokenError:
-                return JsonResponse({'error': 'Invalid token'}, status=401)
+class LoginView(APIView):
+    def post(self, request):
+        user = User.objects.filter(email=request.data['email']).first()
+        if user is None:
+            raise AuthenticationFailed('User not found!')
+        if not user.check_password(request.data['password']):
+            raise AuthenticationFailed('Incorrect password')
+
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+
+        response = Response()
+        response.set_cookie(key='refreshToken', value=refresh_token, httponly=True)
+        response.data = {
+            'token': access_token,
+        }
+        return response
+
+
+class UserView(APIView):
+    def get(self, request):
+        auth = get_authorization_header(request).split()
+        if auth and len(auth) == 2:
+            token = auth[1]
+            user_id = decode_access_token(token)
+            user = User.objects.filter(id=user_id).first()
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
         else:
-            return JsonResponse({'error': 'Authorization header missing or invalid'}, status=401)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-@csrf_exempt
-def refresh_token(request):
-    if request.method == 'POST':
-        refresh_token = request.POST.get('refresh_token')
-        if not refresh_token:
-            return JsonResponse({'error': 'Refresh token missing'}, status=400)
-        try:
-            payload = jwt.decode(refresh_token, settings.REFRESH_TOKEN_SECRET, algorithms=['HS256'])
-            user_id = payload['user_id']
-            user = User.objects.get(pk=user_id)
-            access_token = generate_access_token(user)
-            return JsonResponse({'access_token': access_token}, status=200)
-        except jwt.ExpiredSignatureError:
-            return JsonResponse({'error': 'Refresh token has expired'}, status=401)
-        except jwt.InvalidTokenError:
-            return JsonResponse({'error': 'Invalid refresh token'}, status=401)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+            raise AuthenticationFailed('Unauthenticated')
+
+
+class Refresh(APIView):
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refreshToken')
+        user_id = decode_refresh_token(refresh_token)
+        access_token = create_access_token(user_id)
+        return Response({
+            'token': access_token,
+        })
+
+
+class LogoutView(APIView):
+    def post(self, request):
+        response = Response()
+        response.delete_cookie('refreshToken')
+        response.data = {
+            'message': 'You have successfully logged out',
+        }
+        return response
+
+# class UserUpdateView(APIView):
+#     def get_object(self, pk):
+#         try:
+#             return User.objects.get(pk=pk)
+#         except User.DoesNotExist:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
+#
+#     def put(self, request, pk):
+#         user = self.get_object(pk)
+#         serializer = UserSerializer(user, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

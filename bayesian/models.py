@@ -15,8 +15,6 @@ class Drug_bayesian(models.Model):
     related_drugs = models.TextField()
     medical_condition_description = models.TextField()
 
-    class Meta:
-        db_table = 'Drugs_bayesian'
 
     def __str__(self):
         return self.drug_name

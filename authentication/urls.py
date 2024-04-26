@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import signup, login, logout, refresh_token
+from authentication.views import RegisterView, LoginView, UserView, LogoutView, Refresh
 
 urlpatterns = [
-    path('signup/', signup, name='signup'),
-    path('login/', login, name='login'),
-    path('logout/', logout, name='logout'),
-    path('refresh-token/', refresh_token, name='refresh_token'),
-
+    path('register/', RegisterView.as_view()),
+    path('login/', LoginView.as_view()),
+    path('user/', UserView.as_view()),
+    path('logout/', LogoutView.as_view()),
+    path('refresh/', Refresh.as_view()),
+    # path('update/<int:pk>', UserUpdateView.as_view()),
 ]

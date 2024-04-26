@@ -53,3 +53,8 @@ def get_drug_interactions(request):
 
     # Return the interactions as JSON response
     return Response({'interactions': interactions})
+
+def get_drug_suggestions(request):
+    drug_name_prefix = request.GET.get('name', '')
+    drugs = Drug.objects.filter(drug_name__istartswith=drug_name_prefix).values_list('drug_name', flat=True)
+    return JsonResponse({'drugs': list(drugs)})
