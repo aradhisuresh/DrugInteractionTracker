@@ -15,14 +15,10 @@ class Drug(models.Model):
     alcohol = models.CharField(max_length=1)
     related_drugs = models.TextField()
     medical_condition_description = models.TextField()
-    rating = models.FloatField()
+    rating = models.FloatField(null=True, blank=True)
     no_of_reviews = models.IntegerField()
     drug_link = models.URLField()
     medical_condition_url = models.URLField()
-
-    
-    class Meta:
-        db_table = 'Drugs'
 
     def __str__(self):
         return self.drug_name
@@ -31,6 +27,14 @@ class Drug(models.Model):
         # Truncate brand_names if it exceeds the maximum length
         max_length = self._meta.get_field('brand_names').max_length
         self.brand_names = self.brand_names[:max_length]
+
+        if not self.rating:
+            self.rating = 0  # Assign a default value of 0 if empty or non-numeric
+        elif not isinstance(self.rating, (int, float)):
+            try:
+                self.rating = float(self.rating)  # Attempt to convert to float
+            except (TypeError, ValueError):
+                self.rating = 0  # Assign a default value of 0 if conversion fails
         super().save(*args, **kwargs)
 
 
@@ -48,8 +52,6 @@ class Rule(models.Model):
     description = models.CharField(max_length=255)
     formula = models.CharField(max_length=255)
 
-    class Meta:
-        db_table = 'drug_interaction_rules'
 
     def __str__(self):
         return self.description

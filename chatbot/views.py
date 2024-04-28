@@ -10,6 +10,7 @@ from rest_framework.authentication import get_authorization_header
 from authentication.authentication import decode_access_token
 from rest_framework.views import APIView
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import NotFound
 
 
 
@@ -35,3 +36,19 @@ class ChatbotView(APIView):
                 raise AuthenticationFailed('Unauthenticated')
         else:
             raise AuthenticationFailed('Unauthenticated')
+
+
+class UserChatView(APIView):
+    def get(self, request, user_id):
+        # Check if the user exists
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            raise NotFound('User not found')
+
+        # Retrieve chats for the user
+        chats = Chat.objects.filter(user=user).order_by('-created_at')
+
+        # Serialize the chat data
+        serialized_chats = [{'message': chat.message, 'response': chat.response, 'created_at': chat.created_at} for chat in chats]
+
+        return JsonResponse({'user_id': user_id, 'chats': serialized_chats})

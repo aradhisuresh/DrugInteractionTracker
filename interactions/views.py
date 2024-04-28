@@ -42,11 +42,7 @@ def get_drug_interactions(request):
         drug_b = Drug.objects.get(drug_name=drug_b_name)
         print('Drug-B:', drug_b)
     except Drug.DoesNotExist:
-        print(connection.queries[-1]['sql'])
-
         return Response({"error": "One or both drugs not found"}, status=status.HTTP_404_NOT_FOUND)
-
-    
     
         #  Call the function to check drug interactions
     interactions = detect_interaction(drug_a, drug_b)

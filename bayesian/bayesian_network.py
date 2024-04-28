@@ -1,6 +1,7 @@
 from pgmpy.models import BayesianModel
 from pgmpy.estimators import ParameterEstimator
 from pgmpy.inference import VariableElimination
+from pgmpy.factors.discrete import TabularCPD
 
 def build_bayesian_network():
     # Define the structure of the Bayesian network
@@ -11,42 +12,34 @@ def build_bayesian_network():
                            ('drug_name', 'alcohol')])
     
     # Add CPDs (Conditional Probability Distributions) to the model
-    cpd_medical_condition = {
-        'cpd': {'values': [[0.8, 0.2], [0.3, 0.7]]},
-        'evidence': ['drug_name'],
-        'evidence_card': [2]
-    }
-    model.add_cpds('medical_condition', **cpd_medical_condition)
+    cpd_medical_condition = TabularCPD(variable='medical_condition', variable_card=2,
+                                       values=[[0.8, 0.2], [0.3, 0.7]],
+                                       evidence=['drug_name'], evidence_card=[2])
+    model.add_cpds(cpd_medical_condition)
     
-    cpd_side_effects = {
-        'cpd': {'values': [[0.7, 0.3], [0.4, 0.6]]},
-        'evidence': ['drug_name'],
-        'evidence_card': [2]
-    }
-    model.add_cpds('side_effects', **cpd_side_effects)
+    cpd_side_effects = TabularCPD(variable='side_effects', variable_card=2,
+                                  values=[[0.7, 0.3], [0.4, 0.6]],
+                                  evidence=['drug_name'], evidence_card=[2])
+    model.add_cpds(cpd_side_effects)
     
-    cpd_drug_classes = {
-        'cpd': {'values': [[0.9, 0.1], [0.5, 0.5]]},
-        'evidence': ['drug_name'],
-        'evidence_card': [2]
-    }
-    model.add_cpds('drug_classes', **cpd_drug_classes)
+    cpd_drug_classes = TabularCPD(variable='drug_classes', variable_card=2,
+                                   values=[[0.9, 0.1], [0.5, 0.5]],
+                                   evidence=['drug_name'], evidence_card=[2])
+    model.add_cpds(cpd_drug_classes)
     
-    cpd_pregnancy_category = {
-        'cpd': {'values': [[0.95, 0.05], [0.4, 0.6]]},
-        'evidence': ['drug_name'],
-        'evidence_card': [2]
-    }
-    model.add_cpds('pregnancy_category', **cpd_pregnancy_category)
+    cpd_pregnancy_category = TabularCPD(variable='pregnancy_category', variable_card=2,
+                                        values=[[0.95, 0.05], [0.4, 0.6]],
+                                        evidence=['drug_name'], evidence_card=[2])
+    model.add_cpds(cpd_pregnancy_category)
     
-    cpd_alcohol = {
-        'cpd': {'values': [[0.8, 0.2], [0.3, 0.7]]},
-        'evidence': ['drug_name'],
-        'evidence_card': [2]
-    }
-    model.add_cpds('alcohol', **cpd_alcohol)
+    cpd_alcohol = TabularCPD(variable='alcohol', variable_card=2,
+                             values=[[0.8, 0.2], [0.3, 0.7]],
+                             evidence=['drug_name'], evidence_card=[2])
+    model.add_cpds(cpd_alcohol)
 
     return model
+
+
 
 def predict_interaction(model, evidence):
     # Perform inference to predict drug interaction

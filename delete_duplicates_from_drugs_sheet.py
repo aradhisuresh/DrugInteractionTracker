@@ -26,7 +26,7 @@ def clean_csv(input_file, output_file, max_length=2000):
 
 # Specify input and output file paths
 input_csv_file = r'C:\Users\Varuni Ramesh\Downloads\Drug-Interaction\drugs_side_effects_drugs_com.csv'
-output_csv_file = r'C:\Users\Varuni Ramesh\Downloads\Drug-Interaction\Drugs.csv'
+output_csv_file = r'C:\Users\Varuni Ramesh\Downloads\Drug-Interaction\Drugs2.csv'
 
 # Clean the CSV data
 clean_csv(input_csv_file, output_csv_file)

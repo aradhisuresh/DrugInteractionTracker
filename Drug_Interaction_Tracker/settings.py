@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import secrets
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -129,5 +130,5 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'authentication.exception.status_code_handler',
 }
 
-ACCESS_TOKEN_SECRET = 'Access_secret_string_12345'
-REFRESH_TOKEN_SECRET = 'Refresh_secret_string_12345'
+ACCESS_TOKEN_SECRET = secrets.token_urlsafe(32)
+REFRESH_TOKEN_SECRET = secrets.token_urlsafe(32)

@@ -6,6 +6,11 @@ from rest_framework.authentication import get_authorization_header
 from authentication.serializers import UserSerializer
 from authentication.models import User
 from authentication.authentication import create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
+from django.utils.http import http_date
+from datetime import timedelta
+from django.utils import timezone
+from Drug_Interaction_Tracker.settings import ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET
+import jwt
 
 
 class RegisterView(APIView):
@@ -26,11 +31,14 @@ class LoginView(APIView):
 
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
-
+      
         response = Response()
-        response.set_cookie(key='refreshToken', value=refresh_token, httponly=True)
+        response.set_cookie(key='refreshToken', value= refresh_token, httponly=True,
+                            expires=http_date((timezone.now() + timedelta(days=7)).timestamp()))  # Expires in 7 days
+        
         response.data = {
-            'token': access_token,
+            'access_token': access_token,
+            'refresh_token': refresh_token,
         }
         return response
 
@@ -50,22 +58,43 @@ class UserView(APIView):
 
 class Refresh(APIView):
     def post(self, request):
-        refresh_token = request.COOKIES.get('refreshToken')
-        user_id = decode_refresh_token(refresh_token)
-        access_token = create_access_token(user_id)
-        return Response({
-            'token': access_token,
-        })
+        auth = get_authorization_header(request).split()
+        if auth and len(auth) == 2:
+            refresh_token = auth[1]
+            user_id = decode_refresh_token(refresh_token)
+            access_token = create_access_token(user_id)
+            return Response({
+                'token': access_token,
+            })
+        else:
+            raise AuthenticationFailed('Refresh Token not valid.')
 
 
 class LogoutView(APIView):
     def post(self, request):
-        response = Response()
-        response.delete_cookie('refreshToken')
-        response.data = {
-            'message': 'You have successfully logged out',
-        }
-        return response
+        auth = get_authorization_header(request).split()
+        try:
+            if auth and len(auth) == 2:
+                token = auth[1]
+                user_id = decode_access_token(token)
+                print('Token: ', token)
+                print('User ID: ', user_id)
+                response = Response()
+                response.delete_cookie('refreshToken')        
+                response.data = {
+                    'message': 'You have successfully logged out',
+                }
+                return response
+            else:
+                
+                return Response('Invalid token.')
+        except AuthenticationFailed:
+            response = Response()
+            response.data = {
+                'message': 'Invalid token.',
+            }
+            return response
+
 
 # class UserUpdateView(APIView):
 #     def get_object(self, pk):
